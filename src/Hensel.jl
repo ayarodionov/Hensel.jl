@@ -356,6 +356,42 @@ end
 δ(se::MahEnv2, n::Integer, k::Integer) = (se)(n, k) - (se)(n, "Hensel")
 
 #--------------------------------------------------------------------------------------------------
+# VpEnv
+#--------------------------------------------------------------------------------------------------
+"Calculates van der Put expansion of function f (as encoded by FunEnv fe) using precision sz
+base-fe.marg.p digits"
+vpexpansion(fe::FunEnv, sz::Integer)::Vector = VanDerPut.vpexpansion((x) -> fe(x), fe.marg.p, sz)
+
+"Envelope for van der Put expansion"
+struct VpEnv
+    fe::FunEnv          # mapping function to integer
+    p::Integer          # p-adic base (matches fe.marg.p)
+    sz::Integer         # precision (number of base-p digits used in the expansion)
+    vv::Vector          # vector of van der Put coefficients
+end
+VpEnv(fe::FunEnv) = VpEnv(fe, fe.marg.sz)
+VpEnv(fe::FunEnv, sz::Integer) = VpEnv(fe, fe.marg.p, sz, vpexpansion(fe, sz))
+
+"Calculation from van der Put expansion"
+(s::VpEnv)(n::Integer) = VanDerPut.vpval(n, s.vv, s.p, s.sz)
+(s::VpEnv)(n::Integer, k::Integer) = VanDerPut.vpval(n, s.vv, s.p, k)
+"Optional calculation - can use van der Put, extension of FunEnv call"
+function (s::VpEnv)(n::Integer, option::String)
+    if option == "VanDerPut"
+        return VanDerPut.vpval(n, s.vv, s.p, s.sz)
+    elseif option == "Hensel"
+        return (s.fe)(n)
+    end
+    throw(DomainError(option, "unknown keyword"))
+end
+
+(s::VpEnv)(x::Real) = VanDerPut.vpval(s.fe.marg(x), s.vv, s.p, s.sz)
+(s::VpEnv)(x::Real, k::Integer) = VanDerPut.vpval(s.fe.marg(x), s.vv, s.p, k)
+
+δ(se::VpEnv, n::Integer) = (se)(n) - (se)(n, "Hensel")
+δ(se::VpEnv, n::Integer, k::Integer) = (se)(n, k) - (se)(n, "Hensel")
+
+#--------------------------------------------------------------------------------------------------
 # Additional functions
 #--------------------------------------------------------------------------------------------------
 

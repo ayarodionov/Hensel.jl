@@ -34,6 +34,9 @@ using Test
     @testset "MahEnv2 tests" begin
         include("MahEnv2_tests.jl")
     end
+    @testset "VpEnv tests" begin
+        include("VpEnv_tests.jl")
+    end
     @testset "Mahler" begin
         @testset "sundry tests" begin
             include("sunry_tests.jl")
