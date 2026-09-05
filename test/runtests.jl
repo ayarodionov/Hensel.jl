@@ -25,6 +25,12 @@ using Test
     @testset "p=2 specialisation tests" begin
         include("p2_tests.jl")
     end
+    @testset "LinMap2 tests" begin
+        include("LinMap2_tests.jl")
+    end
+    @testset "FunEnv2 tests" begin
+        include("FunEnv2_tests.jl")
+    end
     @testset "Mahler" begin
         @testset "sundry tests" begin
             include("sunry_tests.jl")

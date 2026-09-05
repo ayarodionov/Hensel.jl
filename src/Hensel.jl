@@ -194,6 +194,35 @@ function (s::LinMap)(x::Number; return_type::String="integer")
 end
 
 #--------------------------------------------------------------------------------------------------
+# LinMap2: p=2 specialisation of LinMap
+#--------------------------------------------------------------------------------------------------
+"p=2 specialisation of LinMap: linear mapper integer or hensel code to interval and back"
+struct LinMap2{T<:Number} <: AbstractMapping
+    ab::Tuple{T, T}     # interval
+    sz::Integer         # precision
+end
+
+"Maps integer to point in [a,b]"
+(s::LinMap2)(n::Integer) = rValue2(n, s.sz, s.ab)
+
+"Maps hensel code to point in [a,b]"
+(s::LinMap2)(v::Vector{<:Integer}) = from01(rValue2(v), s.ab)
+
+"Maps x∈[a,b] to integer, hensel code (integer vector), rational or real number"
+function (s::LinMap2)(x::Number; return_type::String="integer")
+    if return_type == "integer"
+        return iValue2(x, s.ab, s.sz)
+    elseif return_type == "hensel"
+        return hVector2(x, s.ab, s.sz)
+    elseif return_type == "rational"
+        return Rational(x)
+    elseif return_type == "real"
+        return x
+    end
+    throw(DomainError(return_type, "unknown keyword"))
+end
+
+#--------------------------------------------------------------------------------------------------
 # FunEnv
 #--------------------------------------------------------------------------------------------------
 "Envelope for calculating functions real -> real as integer -> integer"
@@ -225,6 +254,42 @@ FunEnv(f, arange, ap, asz) = FunEnv(f, arange, ap, asz, arange)
 "For testing how good FunEnv approximates its function"
 δ(fe::FunEnv, x::Real) = fe(x) - fe(fe.marg(x), return_type="real")
 δ(x::Real, fe::FunEnv) = fe.mval(fe(x)) - fe(fe.marg(x))
+
+#--------------------------------------------------------------------------------------------------
+# FunEnv2: p=2 specialisation of FunEnv
+#--------------------------------------------------------------------------------------------------
+"p=2 specialisation of FunEnv: envelope for calculating functions real -> real as integer -> integer"
+struct FunEnv2{T1<:AbstractMapping, T2<:AbstractMapping}
+    f::Function         # function
+    marg::T1            # argument map
+    mval::T2            # value map
+end
+FunEnv2(f, arange, asz, vrange, vsz) = FunEnv2(f, LinMap2(arange, asz), LinMap2(vrange, vsz))
+FunEnv2(f, arange, asz, vrange) = FunEnv2(f, arange, asz, vrange, asz)
+FunEnv2(f, arange, asz) = FunEnv2(f, arange, asz, arange)
+
+"Direct call to the function"
+(s::FunEnv2)(x::Real) = s.f(x)
+
+"Call function real -> real as integer -> [integer | vector | real | rational]"
+(s::FunEnv2)(x::Integer; return_type::String="integer") =
+    s.mval(s.f(s.marg(x)), return_type=return_type)
+
+"Call function real, integer -> real as integer -> [integer | vector | real | rational]"
+(s::FunEnv2)(x::Integer, i::Integer; return_type::String="integer") =
+    s.mval(s.f(s.marg(x), i), return_type=return_type)
+
+(s::FunEnv2)((x, i, return_type)::Tuple{Integer, Integer, String}) =
+    (s::FunEnv2)(x, i, return_type=return_type)
+
+(s::FunEnv2)((x, i)::Tuple{Integer, Integer}) = (s::FunEnv2)(x, i, return_type="integer")
+
+"For testing how good FunEnv2 approximates its function"
+δ(fe::FunEnv2, x::Real) = fe(x) - fe(fe.marg(x), return_type="real")
+δ(x::Real, fe::FunEnv2) = fe.mval(fe(x)) - fe(fe.marg(x))
+
+"Calculates Mahler expansion of function f of length n"
+mexpansion(fe::FunEnv2, n::Integer)::Vector = Mahler.mexpansion((x) -> fe(x), n)
 
 #--------------------------------------------------------------------------------------------------
 # MahEnv
