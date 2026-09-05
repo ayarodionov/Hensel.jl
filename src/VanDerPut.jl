@@ -1,6 +1,7 @@
 "Collection of functions for van der Put expansion"
 module VanDerPut
 export nminus, vpcoeff, vpexpansion, vpval
+export nminus2, vp2coeff, vp2expansion, vp2val
 
 "Number of base-p digits of n (0 for n == 0)"
 function digitlength(n::Integer, p::Integer)::Integer
@@ -47,6 +48,46 @@ function vpval(x::Integer, v::Vector, p::Integer, sz::Integer)::Number
         if newprefix != prefix
             s += v[newprefix+1]
             prefix = newprefix
+        end
+    end
+    return s
+end
+
+#--------------------------------------------------------------------------------------------------
+# p = 2 specialisation: base-p arithmetic (%, ÷, ^) replaced by bit operations (&, >>, <<)
+#--------------------------------------------------------------------------------------------------
+
+"Highest power of 2 not exceeding n. Asserts: n > 0."
+function highbit(n::Integer)::Integer
+    b = one(n)
+    while (b << 1) <= n
+        b <<= 1
+    end
+    return b
+end
+
+"n with its most significant bit cleared (p=2 specialisation of nminus). Asserts: n > 0."
+nminus2(n::Integer)::Integer = n ⊻ highbit(n)
+
+"p=2 specialisation of vpcoeff"
+vp2coeff(f::Function, n::Integer)::Number = n == 0 ? f(0) : f(n) - f(nminus2(n))
+vp2coeff(v::Vector, n::Integer)::Number = n == 0 ? v[1] : v[n+1] - v[nminus2(n)+1]
+
+"p=2 specialisation of vpexpansion"
+vp2expansion(v::Vector)::Vector = ((i) -> vp2coeff(v, i)).(collect(0:(length(v)-1)))
+vp2expansion(f::Function, sz::Integer)::Vector = vp2expansion(f.(collect(0:(2^sz-1))))
+
+"p=2 specialisation of vpval"
+function vp2val(x::Integer, v::Vector, sz::Integer)::Number
+    s = v[1]
+    prefix = zero(x)
+    xx = x
+    for level = 0:(sz-1)
+        d = xx & 1
+        xx >>= 1
+        if d == 1
+            prefix |= (one(x) << level)
+            s += v[prefix+1]
         end
     end
     return s

@@ -54,3 +54,24 @@ for x = 0:15
 end
 
 #--------------------------------------------------------------------------------------------------
+# p = 2 specialisation: nminus2 / vp2coeff / vp2expansion / vp2val agree with the generic p=2 versions
+#--------------------------------------------------------------------------------------------------
+
+for n = 1:31
+    @test VanDerPut.nminus2(n) == VanDerPut.nminus(n, 2)
+end
+
+sz2 = 5
+for f in ((x) -> x, (x) -> x^2, (x) -> 3*x + 1, (x) -> iseven(x) ? 1 : -1)
+    v_gen = VanDerPut.vpexpansion(f, 2, sz2)
+    v_2   = VanDerPut.vp2expansion(f, sz2)
+    @test v_2 == v_gen
+    for x = 0:(2^sz2 - 1)
+        @test VanDerPut.vp2val(x, v_2, sz2) == f(x)
+        for k = 1:sz2
+            @test VanDerPut.vp2val(x, v_2, k) == VanDerPut.vpval(x, v_gen, 2, k)
+        end
+    end
+end
+
+#--------------------------------------------------------------------------------------------------
