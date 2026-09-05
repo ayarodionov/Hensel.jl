@@ -288,9 +288,6 @@ FunEnv2(f, arange, asz) = FunEnv2(f, arange, asz, arange)
 δ(fe::FunEnv2, x::Real) = fe(x) - fe(fe.marg(x), return_type="real")
 δ(x::Real, fe::FunEnv2) = fe.mval(fe(x)) - fe(fe.marg(x))
 
-"Calculates Mahler expansion of function f of length n"
-mexpansion(fe::FunEnv2, n::Integer)::Vector = Mahler.mexpansion((x) -> fe(x), n)
-
 #--------------------------------------------------------------------------------------------------
 # MahEnv
 #--------------------------------------------------------------------------------------------------
@@ -325,6 +322,38 @@ end
 δ(se::MahEnv, n::Integer) = (se)(n) - (se)(n, "Hensel")
 δ(se::MahEnv, n::Integer, k::Integer) = (se)(n, k) - (se)(n, "Hensel")
 
+#--------------------------------------------------------------------------------------------------
+# MahEnv2: p=2 specialisation of MahEnv
+#--------------------------------------------------------------------------------------------------
+"Calculates Mahler expansion of function f of length n"
+mexpansion(fe::FunEnv2, n::Integer)::Vector = Mahler.mexpansion((x) -> fe(x), n)
+
+"p=2 specialisation of MahEnv: envelope for Mahler expansion"
+struct MahEnv2
+    fe::FunEnv2         # mapping function to integer (p=2)
+    mv::Vector          # vector of Mahler coefficients
+end
+MahEnv2(fe::FunEnv2) = MahEnv2(fe, mexpansion(fe, fe.marg.sz))
+MahEnv2(fe::FunEnv2, n::Integer) = MahEnv2(fe, mexpansion(fe, n))
+
+"Calulation from Mahler expansion"
+(s::MahEnv2)(n::Integer) = Mahler.mval(n, s.mv)
+(s::MahEnv2)(n::Integer, m::Integer) = Mahler.mval(n, s.mv, m)
+"Optional calculation - can use Mahler, extension of FunEnv2 call"
+function (s::MahEnv2)(n::Integer, option::String)
+    if option == "Mahler"
+        return Mahler.mval(n, s.mv)
+    elseif option == "Hensel"
+        return (s.fe)(n)
+    end
+    throw(DomainError(option, "unknown keyword"))
+end
+
+(s::MahEnv2)(x::Real) = Mahler.mval(s.fe.marg(x), s.mv)
+(s::MahEnv2)(x::Real, m::Integer) = Mahler.mval(s.fe.marg(x), s.mv, m)
+
+δ(se::MahEnv2, n::Integer) = (se)(n) - (se)(n, "Hensel")
+δ(se::MahEnv2, n::Integer, k::Integer) = (se)(n, k) - (se)(n, "Hensel")
 
 #--------------------------------------------------------------------------------------------------
 # Additional functions
