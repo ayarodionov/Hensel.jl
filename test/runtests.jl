@@ -33,6 +33,9 @@ using Test
             include("mexpansion_tests.jl")
         end
     end
+    @testset "van der Put tests" begin
+        include("vanderput_tests.jl")
+    end
 end
 
 #--------------------------------------------------------------------------------------------------

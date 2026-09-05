@@ -4,7 +4,9 @@
 module Hensel
 include("Mahler.jl")
 using .Mahler
-export pIndex, hVector, Mahler
+include("VanDerPut.jl")
+using .VanDerPut
+export pIndex, hVector, Mahler, VanDerPut
 
 #--------------------------------------------------------------------------------------------------
 # Linear mapping 
