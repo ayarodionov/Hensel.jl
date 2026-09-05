@@ -32,6 +32,9 @@ using Test
         @testset "mexpansion tests" begin
             include("mexpansion_tests.jl")
         end
+        @testset "mexpansion2 tests" begin
+            include("mexpansion2_tests.jl")
+        end
     end
     @testset "van der Put tests" begin
         include("vanderput_tests.jl")
