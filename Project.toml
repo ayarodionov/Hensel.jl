@@ -1,0 +1,10 @@
+name = "Hensel"
+uuid = "4924f60a-008a-4de0-8d9e-4683f7239ad0"
+version = "0.1.0"
+authors = ["ayarodionov <ayarodionov@gmail.com>"]
+
+[deps]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+Test = "1.11.0"
