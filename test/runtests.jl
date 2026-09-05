@@ -22,6 +22,9 @@ using Test
     @testset "Additional functions tests" begin
         include("additional_functions_tests.jl")
     end
+    @testset "p=2 specialisation tests" begin
+        include("p2_tests.jl")
+    end
     @testset "Mahler" begin
         @testset "sundry tests" begin
             include("sunry_tests.jl")

@@ -7,6 +7,7 @@ using .Mahler
 include("VanDerPut.jl")
 using .VanDerPut
 export pIndex, hVector, Mahler, VanDerPut
+export pIndex2, hVector2, iValue2, rValue2
 
 #--------------------------------------------------------------------------------------------------
 # Linear mapping 
@@ -88,6 +89,71 @@ end
 "Calculates integer from Hensel code vector: Σv[i]*p^i"
 iValue(v::Vector{<:Integer}, p::Integer)::Integer = 
     foldl((s,i) -> v[i]+s*p, length(v):-1:1, init = 0)
+
+#--------------------------------------------------------------------------------------------------
+# p = 2 specialisation: base-p arithmetic (*p, /p, %p, ÷p) on the integer Hensel code is replaced
+# by bit operations (&, >>, <<); the real-valued (x ∈ [0,1]) functions keep floating point *2, /2.
+#--------------------------------------------------------------------------------------------------
+
+"p=2 specialisation of pIndex. x ∈ [0,1]"
+pIndex2(x::Number)::Integer = floor(Int, x*2)
+
+"p=2 specialisation of hVector. p is a base, sz - precision.
+Asserts: x ∈ [0,1], sz > 0."
+function hVector2(x::Number, sz::Integer)::Vector{Integer}
+    @assert(0 <= x <= 1)
+    @assert(sz > 0)
+    if x == 1.0
+        return fill(1, sz)
+    end
+    h = Vector{Integer}(undef, sz)
+    for i = 1 : sz
+        n = pIndex2(x)
+        x = to01(x, n/2, (n+1)/2)
+        h[i] = n
+    end
+    return h
+end
+
+"p=2 specialisation of hVector: decodes a Hensel code vector back from its integer
+representation using bit operations."
+function hVector2(n::Integer, sz::Integer)::Vector{Integer}
+    h = Vector{Integer}(undef, sz)
+    for i = 1 : sz
+        h[i] = n & 1
+        n >>= 1
+    end
+    return h
+end
+
+"p=2 specialisation of iValue: Σv[i]*2^i computed via bit shifts"
+iValue2(v::Vector{<:Integer})::Integer =
+    foldl((s,i) -> v[i]+(s<<1), length(v):-1:1, init = 0)
+
+"p=2 specialisation of rValue: real number x∈[0,1] from Hensel code vector"
+rValue2(v::Vector{<:Integer})::Real =
+    foldl((s,i) -> v[i]+s/2, length(v):-1:1, init = 1.0)/2
+
+"p=2 specialisation of rValue: real number x∈[0,1] from integer"
+rValue2(n::Integer, sz::Integer)::Real = rValue2(hVector2(n, sz))
+
+"p=2 specialisation of hVector on [a,b].
+Asserts: x ∈ [a,b], sz > 0."
+function hVector2(x::Number, a::Number, b::Number, sz::Integer)::Vector{Integer}
+    @assert(a <= x <= b)
+    return hVector2(to01(x, a, b), sz)
+end
+
+hVector2(x::Number, (a, b)::Tuple{<:Real, <:Real}, sz::Integer)::Vector{Integer} =
+    hVector2(x, a, b, sz)
+
+"p=2 specialisation of iValue: integer from real number x∈[a,b]"
+iValue2(x::Number, ab::Tuple{<:Number, <:Number}, sz::Integer)::Integer =
+    iValue2(hVector2(x, ab, sz))
+
+"p=2 specialisation of rValue: real number x∈[a,b] from integer"
+rValue2(n::Integer, sz::Integer, ab::Tuple{<:Number, <:Number})::Number =
+    from01(rValue2(hVector2(n, sz)), ab)
 
 #--------------------------------------------------------------------------------------------------
 # Abstruct type
