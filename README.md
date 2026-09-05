@@ -1,5 +1,7 @@
 # Hensel
 
+[![CI](https://github.com/ayarodionov/Hensel.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/ayarodionov/Hensel.jl/actions/workflows/CI.yml)
+
 Julia code for playing with functions using Hensel code and Mahler expansion.
 
 A fresh package combining the source of two previously separate projects, kept as
