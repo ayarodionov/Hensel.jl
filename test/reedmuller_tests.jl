@@ -30,6 +30,25 @@ end
 @test_throws AssertionError Hensel.rmencode(16, 1, 3)
 
 #--------------------------------------------------------------------------------------------------
+# rmdecode: exact inverse of rmencode/rmhvector for every valid codeword
+#--------------------------------------------------------------------------------------------------
+
+for (r, m) in ((1, 3), (1, 4), (2, 3), (2, 4))
+    k = dimension(RMCode(r, m))
+    for msg = 0:(2^k - 1)
+        @test Hensel.rmdecode(Hensel.rmencode(msg, r, m), r, m) == msg
+        @test Hensel.rmdecode(Hensel.rmhvector(msg, r, m), r, m) == msg
+    end
+end
+
+# larger code: exhaustive would be 2^16 messages, sample instead
+let r = 2, m = 5, k = dimension(RMCode(2, 5))
+    for msg in rand(0:(2^k - 1), 200)
+        @test Hensel.rmdecode(Hensel.rmencode(msg, r, m), r, m) == msg
+    end
+end
+
+#--------------------------------------------------------------------------------------------------
 # rmvpexpansion: exact reconstruction (van der Put expansion at full precision) and agreement
 # with VanDerPut.vp2expansion/vp2val applied directly to rmencode
 #--------------------------------------------------------------------------------------------------

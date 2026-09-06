@@ -7,10 +7,11 @@ using .Mahler
 include("VanDerPut.jl")
 using .VanDerPut
 using ReedMuller
+using LinearAlgebra: I
 export pIndex, hVector, Mahler, VanDerPut
 export pIndex2, hVector2, iValue2, rValue2
-export rmhvector, rmencode, rmvpexpansion, rmmexpansion
-export RMCode, MatrixEncoder, encode, dimension, blocklength
+export rmhvector, rmencode, rmdecode, rmvpexpansion, rmmexpansion
+export RMCode, MatrixEncoder, encode, dimension, blocklength, generator_matrix
 
 #--------------------------------------------------------------------------------------------------
 # Linear mapping 
@@ -413,6 +414,94 @@ end
 "Encodes a message, given as a non-negative integer, using the Reed-Muller RM(r,m) code, and
 returns the codeword as a non-negative integer: iValue2(rmhvector(msg, r, m))."
 rmencode(msg::Integer, r::Integer, m::Integer)::Integer = iValue2(rmhvector(msg, r, m))
+
+# --- rmdecode: exact GF(2) linear-algebra inverse of rmencode -------------------------------
+#
+# A digit-by-digit (Hensel-lifting-style) decoder — matching low output bits to low message
+# bits, one bit of precision at a time — was tried first, since rmencode(msg) mod 2^i does
+# depend only on msg mod 2^i (a genuine 2-adic Lipschitz property, verified for these codes).
+# But Hensel lifting also needs that dependency to be *invertible* at each step, and it isn't
+# here: RM(r,m) is a rate k/n < 1 code (k = dimension(RMCode(r,m)) < n = 2^m), so the low i
+# codeword bits collide for distinct low-i message-bit patterns once i grows past a few bits
+# (checked directly: e.g. RM(1,4) has 16 distinct values among the 16 residues mod 2^4, i.e.
+# no collision at i=3, but only 8 distinct values among 16 keys at i=3 the other direction —
+# the map stops being injective). There just isn't enough information in a truncated prefix of
+# the (redundant, n>k) codeword to pin down the next message bit. So instead: RM(r,m) is a
+# linear code (rmhvector is GF(2)-linear in the message bits), and decoding a valid codeword is
+# exact linear algebra — invert an information set of the generator matrix over GF(2).
+
+"Row-reduces Boolean matrix A over GF(2) in place and returns the column index of each pivot,
+one per row, in row order (i.e. the first dimension(A,1) linearly independent columns)."
+function gf2_pivot_columns(A::BitMatrix)::Vector{Int}
+    A = copy(A)
+    rows, cols = size(A)
+    pivots = Int[]
+    r = 1
+    for c = 1:cols
+        piv = findfirst(i -> A[i, c], r:rows)
+        piv === nothing && continue
+        piv += r - 1
+        if piv != r
+            A[[r, piv], :] = A[[piv, r], :]
+        end
+        for i = 1:rows
+            if i != r && A[i, c]
+                A[i, :] .= xor.(A[i, :], A[r, :])
+            end
+        end
+        push!(pivots, c)
+        r += 1
+        r > rows && break
+    end
+    return pivots
+end
+
+"Inverts a square Boolean matrix over GF(2) via Gauss-Jordan elimination."
+function gf2_inverse(A::BitMatrix)::BitMatrix
+    n = size(A, 1)
+    M = hcat(A, BitMatrix(Matrix(I, n, n)))
+    for c = 1:n
+        piv = findfirst(i -> M[i, c], c:n)
+        piv += c - 1
+        if piv != c
+            M[[c, piv], :] = M[[piv, c], :]
+        end
+        for i = 1:n
+            if i != c && M[i, c]
+                M[i, :] .= xor.(M[i, :], M[c, :])
+            end
+        end
+    end
+    return M[:, (n+1):end]
+end
+
+"Decodes a Reed-Muller RM(r,m) codeword (a Hensel code vector, n = 2^m bits, least-significant-
+first) back to its message integer. Exact: solves msg*G = codeword over GF(2), by inverting an
+information set (an invertible k×k submatrix, k = dimension(RMCode(r,m))) of the generator
+matrix. Requires codevec to be an actual RM(r,m) codeword (not merely any n-bit vector)."
+function rmdecode(codevec::Vector{<:Integer}, r::Integer, m::Integer)::Integer
+    code = RMCode(r, m)
+    k = dimension(code)
+    G = generator_matrix(code)
+    pivots = gf2_pivot_columns(G)
+    G_I = G[:, pivots]
+    G_I_inv = gf2_inverse(G_I)
+    c_I = Bool.(codevec[pivots])
+    msgvec = falses(k)
+    for j = 1:k
+        s = false
+        for i = 1:k
+            s = xor(s, c_I[i] & G_I_inv[i, j])
+        end
+        msgvec[j] = s
+    end
+    return iValue2(Int.(msgvec))
+end
+
+"Decodes a Reed-Muller RM(r,m) codeword, given as a non-negative integer, back to its message
+integer: rmdecode(hVector2(M, blocklength(RMCode(r,m))), r, m)."
+rmdecode(M::Integer, r::Integer, m::Integer)::Integer =
+    rmdecode(hVector2(M, blocklength(RMCode(r, m))), r, m)
 
 "Calculates the van der Put (p=2) expansion of the Reed-Muller RM(r,m) encoding function
 (message integer -> codeword integer) over all 2^k messages, k = dimension(RMCode(r,m))."

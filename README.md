@@ -33,3 +33,13 @@ and `rmmexpansion(r, m)` compute the van der Put (p=2) and Mahler expansions,
 respectively, of the message -> codeword-integer function over all representable
 messages (note: `rmmexpansion` is O(n²) with BigInt binomials, so it's only
 practical for small RM(r,m)).
+
+`rmdecode(codeword, r, m)` inverts `rmencode`/`rmhvector` (codeword as an integer or
+a Hensel code vector) back to the message integer. It's exact GF(2) linear algebra
+(RM(r,m) is a linear code: `rmhvector` is GF(2)-linear in the message bits, so
+decoding a valid codeword is solving `msg*G = codeword` by inverting an information
+set of the generator matrix), not a Hensel-lifting search — a digit-by-digit lift
+was tried first, but RM(r,m) is a rate k/n < 1 code (`k = dimension(RMCode(r,m))
+< n = 2^m`), so a truncated prefix of the (redundant) codeword doesn't carry enough
+information to pin down the next message bit uniquely; see the comment above
+`rmdecode` in `src/Hensel.jl` for the worked-out reason.
