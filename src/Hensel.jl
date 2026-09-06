@@ -9,7 +9,7 @@ using .VanDerPut
 using ReedMuller
 export pIndex, hVector, Mahler, VanDerPut
 export pIndex2, hVector2, iValue2, rValue2
-export rmencode, rmvpexpansion, rmmexpansion
+export rmhvector, rmencode, rmvpexpansion, rmmexpansion
 export RMCode, MatrixEncoder, encode, dimension, blocklength
 
 #--------------------------------------------------------------------------------------------------
@@ -395,22 +395,24 @@ end
 δ(se::VpEnv, n::Integer, k::Integer) = (se)(n, k) - (se)(n, "Hensel")
 
 #--------------------------------------------------------------------------------------------------
-# Reed-Muller encoding, its van der Put expansion, and its Mahler expansion
+# Reed-Muller encoding, its Hensel code, van der Put expansion, and Mahler expansion
 #--------------------------------------------------------------------------------------------------
 "Encodes a message, given as a non-negative integer, using the Reed-Muller RM(r,m) code from
-ReedMuller.jl and returns the codeword, again as a non-negative integer. The message integer is
-decoded into its k = dimension(RMCode(r,m)) low-order bits (via hVector2, least-significant-first)
-to build the message vector; the resulting n = 2^m codeword bits are packed back into an integer
-via iValue2, using the same bit order.
+ReedMuller.jl and returns the codeword as a Hensel code vector (n = 2^m bits, least-significant-
+first). The message integer is decoded into its k = dimension(RMCode(r,m)) low-order bits (via
+hVector2, least-significant-first) to build the message vector for ReedMuller.jl's encoder.
 Asserts: 0 <= msg < 2^k."
-function rmencode(msg::Integer, r::Integer, m::Integer)::Integer
+function rmhvector(msg::Integer, r::Integer, m::Integer)::Vector{<:Integer}
     code = RMCode(r, m)
     k = dimension(code)
     @assert(0 <= msg < 2^k)
     msgvec = Bool.(hVector2(msg, k))
-    codevec = encode(MatrixEncoder(code), code, msgvec)
-    return iValue2(Int.(codevec))
+    return Int.(encode(MatrixEncoder(code), code, msgvec))
 end
+
+"Encodes a message, given as a non-negative integer, using the Reed-Muller RM(r,m) code, and
+returns the codeword as a non-negative integer: iValue2(rmhvector(msg, r, m))."
+rmencode(msg::Integer, r::Integer, m::Integer)::Integer = iValue2(rmhvector(msg, r, m))
 
 "Calculates the van der Put (p=2) expansion of the Reed-Muller RM(r,m) encoding function
 (message integer -> codeword integer) over all 2^k messages, k = dimension(RMCode(r,m))."

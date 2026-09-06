@@ -1,11 +1,11 @@
 #--------------------------------------------------------------------------------------------------
-# Reed-Muller encoding / van der Put expansion tests
+# Reed-Muller encoding (Hensel code and integer forms), van der Put expansion, Mahler expansion
 #--------------------------------------------------------------------------------------------------
 using Test
 using Hensel
 
 #--------------------------------------------------------------------------------------------------
-# rmencode agrees with a direct ReedMuller.jl call
+# rmhvector agrees with a direct ReedMuller.jl call; rmencode agrees with iValue2(rmhvector(...))
 #--------------------------------------------------------------------------------------------------
 
 for (r, m) in ((1, 3), (1, 4), (2, 4))
@@ -17,13 +17,17 @@ for (r, m) in ((1, 3), (1, 4), (2, 4))
     enc = MatrixEncoder(code)
     for msg = 0:(2^k - 1)
         msgvec = Bool.(Hensel.hVector2(msg, k))
-        expected = Hensel.iValue2(Int.(encode(enc, code, msgvec)))
-        @test Hensel.rmencode(msg, r, m) == expected
+        expected = Int.(encode(enc, code, msgvec))
+        @test Hensel.rmhvector(msg, r, m) == expected
+        @test length(Hensel.rmhvector(msg, r, m)) == n
+        @test Hensel.rmencode(msg, r, m) == Hensel.iValue2(expected)
     end
 end
 
+@test_throws AssertionError Hensel.rmhvector(-1, 1, 3)
+@test_throws AssertionError Hensel.rmhvector(16, 1, 3)   # k=4 => valid range is 0:15
 @test_throws AssertionError Hensel.rmencode(-1, 1, 3)
-@test_throws AssertionError Hensel.rmencode(16, 1, 3)   # k=4 => valid range is 0:15
+@test_throws AssertionError Hensel.rmencode(16, 1, 3)
 
 #--------------------------------------------------------------------------------------------------
 # rmvpexpansion: exact reconstruction (van der Put expansion at full precision) and agreement

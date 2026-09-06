@@ -24,9 +24,12 @@ arithmetic (`%`, `÷`, `*`) for bit operations (`&`, `>>`, `<<`): `pIndex2`/`hVe
 `iValue2`/`rValue2`, `LinMap2`/`FunEnv2`/`MahEnv2`, and the `VanDerPut` p=2 functions
 above. `VpEnv` is a van der Put analogue of `MahEnv`.
 
-`rmencode(msg, r, m)` encodes a message (as a non-negative integer) with the
+`rmhvector(msg, r, m)` encodes a message (as a non-negative integer) with the
 Reed-Muller RM(r,m) code from the registered `ReedMuller` package, returning the
-codeword as a non-negative integer. `rmvpexpansion(r, m)` and `rmmexpansion(r, m)`
-compute the van der Put (p=2) and Mahler expansions, respectively, of that encoding
-function over all representable messages (note: `rmmexpansion` is O(n²) with BigInt
-binomials, so it's only practical for small RM(r,m)).
+codeword as a Hensel code vector; `rmencode(msg, r, m)` returns the same codeword
+packed into an integer (`iValue2(rmhvector(msg, r, m))`) — mirroring how `hVector`/
+`iValue` give the vector and integer forms of a p-adic representation. `rmvpexpansion(r, m)`
+and `rmmexpansion(r, m)` compute the van der Put (p=2) and Mahler expansions,
+respectively, of the message -> codeword-integer function over all representable
+messages (note: `rmmexpansion` is O(n²) with BigInt binomials, so it's only
+practical for small RM(r,m)).
