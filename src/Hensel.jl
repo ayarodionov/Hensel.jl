@@ -9,7 +9,7 @@ using .VanDerPut
 using ReedMuller
 export pIndex, hVector, Mahler, VanDerPut
 export pIndex2, hVector2, iValue2, rValue2
-export rmencode, rmvpexpansion
+export rmencode, rmvpexpansion, rmmexpansion
 export RMCode, MatrixEncoder, encode, dimension, blocklength
 
 #--------------------------------------------------------------------------------------------------
@@ -395,7 +395,7 @@ end
 δ(se::VpEnv, n::Integer, k::Integer) = (se)(n, k) - (se)(n, "Hensel")
 
 #--------------------------------------------------------------------------------------------------
-# Reed-Muller encoding and its van der Put expansion
+# Reed-Muller encoding, its van der Put expansion, and its Mahler expansion
 #--------------------------------------------------------------------------------------------------
 "Encodes a message, given as a non-negative integer, using the Reed-Muller RM(r,m) code from
 ReedMuller.jl and returns the codeword, again as a non-negative integer. The message integer is
@@ -416,6 +416,11 @@ end
 (message integer -> codeword integer) over all 2^k messages, k = dimension(RMCode(r,m))."
 rmvpexpansion(r::Integer, m::Integer)::Vector =
     VanDerPut.vp2expansion((msg) -> rmencode(msg, r, m), dimension(RMCode(r, m)))
+
+"Calculates the Mahler expansion of the Reed-Muller RM(r,m) encoding function
+(message integer -> codeword integer) over all 2^k messages, k = dimension(RMCode(r,m))."
+rmmexpansion(r::Integer, m::Integer)::Vector =
+    Mahler.mexpansion((msg) -> rmencode(msg, r, m), 2^dimension(RMCode(r, m)))
 
 #--------------------------------------------------------------------------------------------------
 # Additional functions

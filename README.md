@@ -26,5 +26,7 @@ above. `VpEnv` is a van der Put analogue of `MahEnv`.
 
 `rmencode(msg, r, m)` encodes a message (as a non-negative integer) with the
 Reed-Muller RM(r,m) code from the registered `ReedMuller` package, returning the
-codeword as a non-negative integer; `rmvpexpansion(r, m)` computes the van der Put
-(p=2) expansion of that encoding function over all representable messages.
+codeword as a non-negative integer. `rmvpexpansion(r, m)` and `rmmexpansion(r, m)`
+compute the van der Put (p=2) and Mahler expansions, respectively, of that encoding
+function over all representable messages (note: `rmmexpansion` is O(n²) with BigInt
+binomials, so it's only practical for small RM(r,m)).

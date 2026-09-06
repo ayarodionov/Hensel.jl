@@ -44,3 +44,21 @@ for (r, m) in ((1, 3), (1, 4), (2, 4))
 end
 
 #--------------------------------------------------------------------------------------------------
+# rmmexpansion: exact reconstruction (Mahler expansion at full precision) and agreement with
+# Mahler.mexpansion/mval applied directly to rmencode
+#--------------------------------------------------------------------------------------------------
+
+for (r, m) in ((1, 3), (1, 4))   # (2,4) omitted: k=11 => Mahler's O(n^2) BigInt binomials are too slow
+    k = dimension(RMCode(r, m))
+
+    mv  = Hensel.rmmexpansion(r, m)
+    mv2 = Mahler.mexpansion((msg) -> Hensel.rmencode(msg, r, m), 2^k)
+    @test mv == mv2
+    @test length(mv) == 2^k
+
+    for msg = 0:(2^k - 1)
+        @test Mahler.mval(msg, mv) == Hensel.rmencode(msg, r, m)
+    end
+end
+
+#--------------------------------------------------------------------------------------------------
