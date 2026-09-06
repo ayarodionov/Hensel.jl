@@ -6,8 +6,11 @@ include("Mahler.jl")
 using .Mahler
 include("VanDerPut.jl")
 using .VanDerPut
+using ReedMuller
 export pIndex, hVector, Mahler, VanDerPut
 export pIndex2, hVector2, iValue2, rValue2
+export rmencode, rmvpexpansion
+export RMCode, MatrixEncoder, encode, dimension, blocklength
 
 #--------------------------------------------------------------------------------------------------
 # Linear mapping 
@@ -390,6 +393,29 @@ end
 
 δ(se::VpEnv, n::Integer) = (se)(n) - (se)(n, "Hensel")
 δ(se::VpEnv, n::Integer, k::Integer) = (se)(n, k) - (se)(n, "Hensel")
+
+#--------------------------------------------------------------------------------------------------
+# Reed-Muller encoding and its van der Put expansion
+#--------------------------------------------------------------------------------------------------
+"Encodes a message, given as a non-negative integer, using the Reed-Muller RM(r,m) code from
+ReedMuller.jl and returns the codeword, again as a non-negative integer. The message integer is
+decoded into its k = dimension(RMCode(r,m)) low-order bits (via hVector2, least-significant-first)
+to build the message vector; the resulting n = 2^m codeword bits are packed back into an integer
+via iValue2, using the same bit order.
+Asserts: 0 <= msg < 2^k."
+function rmencode(msg::Integer, r::Integer, m::Integer)::Integer
+    code = RMCode(r, m)
+    k = dimension(code)
+    @assert(0 <= msg < 2^k)
+    msgvec = Bool.(hVector2(msg, k))
+    codevec = encode(MatrixEncoder(code), code, msgvec)
+    return iValue2(Int.(codevec))
+end
+
+"Calculates the van der Put (p=2) expansion of the Reed-Muller RM(r,m) encoding function
+(message integer -> codeword integer) over all 2^k messages, k = dimension(RMCode(r,m))."
+rmvpexpansion(r::Integer, m::Integer)::Vector =
+    VanDerPut.vp2expansion((msg) -> rmencode(msg, r, m), dimension(RMCode(r, m)))
 
 #--------------------------------------------------------------------------------------------------
 # Additional functions
